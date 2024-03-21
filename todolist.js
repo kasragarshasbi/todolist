@@ -1,43 +1,123 @@
-const todos = [];
+let filterValue = "all";
 
-// selecting
-const todoInpute = document.querySelector(".todo-input");
+const todoInput = document.querySelector(".todo-input");
 const todoForm = document.querySelector(".todo-form");
 const todoList = document.querySelector(".todolist");
-const filterOption = document.querySelector(".filter-todos");
+const selectFilter = document.querySelector(".filter-todos");
 
 // events
+
 todoForm.addEventListener("submit", addNewTodo);
-filterOption.addEventListener("change", filterTodos);
-// functions
+selectFilter.addEventListener("change", (e) => {
+  filterValue = e.target.value;
+  filterTodos();
+});
+
+document.addEventListener("DOMContentLoaded", (e) => {
+  const todos = getAllTodos();
+  createTodos(todos);
+});
+
 function addNewTodo(e) {
   e.preventDefault();
-  // for refreshing
 
-  if (!todoInpute.value) return null;
+  if (!todoInput.value) return null;
+
   const newTodo = {
     id: Date.now(),
     createdAt: new Date().toISOString(),
-    title: todoInpute.value,
+    title: todoInput.value,
     isCompleted: false,
   };
-  todos.push(newTodo);
-  // creating todos on dom
+
+  // todos.push(newTodo);
+  saveTodo(newTodo);
+  filterTodos();
+}
+
+function createTodos(todos) {
+  // create todos on DOM
   let result = "";
   todos.forEach((todo) => {
-    result += `  <li class="todo">
-    <p class="todo__title">${todo.title}</p>
-    <span class="todo__createdAt">${new Date(todo.createdAt).toLocaleDateString(
-      "fa-IR"
-    )}</span>
-    <button data-todo-id=${
-      todo.id
-    }><i class="todo__check far fa-check-square"></i></button>
-    <button data-todo-id=${
-      todo.id
-    }><i class="todo__remove far fa-trash-alt"></i></button>
-  </li>`;
+    result += `<li class="todo">
+      <p class="todo__title ${todo.isCompleted && "completed"}">${
+      todo.title
+    }</p>
+      <span class="todo__createdAt">${new Date(
+        todo.createdAt
+      ).toLocaleDateString("fa-IR")}</span>
+      <button class="todo__check" data-todo-id=${
+        todo.id
+      } ><i class="far fa-check-square"></i></button>
+      <button class="todo__remove" data-todo-id=${
+        todo.id
+      } ><i class="far fa-trash-alt"></i></button>
+    </li>`;
   });
+
   todoList.innerHTML = result;
-  todoInpute.value = "";
+  todoInput.value = "";
+
+  const removeBtns = [...document.querySelectorAll(".todo__remove")];
+  removeBtns.forEach((btn) => btn.addEventListener("click", removeTodo));
+
+  const checkBtns = [...document.querySelectorAll(".todo__check")];
+  checkBtns.forEach((btn) => btn.addEventListener("click", checkTodo));
+}
+
+function filterTodos() {
+  const todos = getAllTodos();
+  switch (filterValue) {
+    case "all": {
+      createTodos(todos);
+      break;
+    }
+    case "completed": {
+      const filteredTodos = todos.filter((t) => t.isCompleted);
+      createTodos(filteredTodos);
+      break;
+    }
+    case "uncompleted": {
+      const filteredTodos = todos.filter((t) => !t.isCompleted);
+      createTodos(filteredTodos);
+      break;
+    }
+    default:
+      createTodos(todos);
+  }
+}
+
+function removeTodo(e) {
+  let todos = getAllTodos();
+  const todoId = Number(e.target.dataset.todoId);
+  todos = todos.filter((t) => t.id !== todoId);
+  saveAllTodos(todos);
+  filterTodos();
+}
+
+function checkTodo(e) {
+  const todos = getAllTodos();
+  const todoId = Number(e.target.dataset.todoId);
+  const todo = todos.find((t) => t.id === todoId);
+  todo.isCompleted = !todo.isCompleted;
+  saveAllTodos(todos);
+  filterTodos();
+}
+
+// localStorage => web API
+
+function getAllTodos() {
+  const savedTodos = JSON.parse(localStorage.getItem("todos")) || [];
+  return savedTodos;
+}
+
+function saveTodo(todo) {
+  const savedTodos = getAllTodos();
+  savedTodos.push(todo);
+  localStorage.setItem("todos", JSON.stringify(savedTodos));
+  return savedTodos;
+}
+
+function saveAllTodos(todos) {
+  localStorage.setItem("todos", JSON.stringify(todos));
 }
